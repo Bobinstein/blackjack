@@ -1,4 +1,4 @@
--- math.randomseed(os.time()) -- os is not available in this environment. os.time() will always return 10
+local json = require('json')
 CRED = "Sa0iBLPNyJQrwpTTG-tWLQU-1QeUAJA73DdxGGiKoJc"
 WAR = "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10"
 TestToken = "1PIaQp_wij0H8Ykx-LuQEUqXQndryycWRjCRvV3R8lI"
@@ -160,7 +160,7 @@ function sendGameStateMessage(playerName)
         allPlayerHandsString ..
         "And the dealer is showing: " ..
         dealerCardsString .. ". Your active hand is: " .. tostring(state.activeHandIndex)
-        Send({ Target = playerName, Action = "BlackJackMessage", Wager = tostring(state.originalBet), Data = message })
+        Send({ Target = playerName, Action = "BlackJackMessage", State = json.encode(state) , Data = message })
         print("Sent message to " .. playerName .. ": " .. message)
     else
         -- Handle the case where there is no active game for the player
