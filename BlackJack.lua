@@ -2,10 +2,35 @@
 CRED = "Sa0iBLPNyJQrwpTTG-tWLQU-1QeUAJA73DdxGGiKoJc"
 WAR = "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10"
 TestToken = "1PIaQp_wij0H8Ykx-LuQEUqXQndryycWRjCRvV3R8lI"
+OldRandomSeed = OldRandomSeed or 69420
 
 gameStates = gameStates or {}
 houseBalance = houseBalance or 0
 lockedBalance = lockedBalance or 0
+
+
+function updateRandomness(blockHeight)
+    assert(tonumber(blockHeight), "Improper arguments")
+
+    local blockHeightNumber = tonumber(blockHeight)
+
+    -- Generate a series of pseudo-random numbers
+    local randomFactor1 = math.random()
+    local randomFactor2 = math.random()
+    local randomFactor3 = math.random()
+    local randomFactor4 = math.random()
+
+    -- Combine the block height with random factors to create a more complex seed
+    local mathing = ((blockHeightNumber * randomFactor1) / (OldRandomSeed + randomFactor2) * randomFactor3) +
+    randomFactor4
+
+    -- Ensure the seed is within the 32-bit integer range
+    local seed = math.floor(mathing * 2 ^ 32) % 2 ^ 32
+
+    math.randomseed(seed)
+
+    OldRandomSeed = seed
+end
 
 -- Function to create a new deck of cards
 function createDeck()
@@ -131,7 +156,10 @@ function sendGameStateMessage(playerName)
         local dealerCardsString = stringifyCards(state.dealerCards)
 
         -- Prepare and send the game state message to the player
-        local message = "Your cards are: " .. allPlayerHandsString .. "And the dealer is showing: " .. dealerCardsString .. ". Your active hand is: " .. tostring(state.activeHandIndex)
+        local message = "Your cards are: " ..
+        allPlayerHandsString ..
+        "And the dealer is showing: " ..
+        dealerCardsString .. ". Your active hand is: " .. tostring(state.activeHandIndex)
         Send({ Target = playerName, Action = "BlackJackMessage", Wager = tostring(state.originalBet), Data = message })
         print("Sent message to " .. playerName .. ": " .. message)
     else
@@ -173,7 +201,7 @@ function sendFinalGameStateMessage(playerName, resultMessage)
         end
 
         local message = resultMessage ..
-        " Your final cards were: " .. playerCardsString .. ". Dealer's final cards were: " .. dealerCardsString
+            " Your final cards were: " .. playerCardsString .. ". Dealer's final cards were: " .. dealerCardsString
         Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
         print("Sent final game state to " .. playerName .. ": " .. message)
     else
@@ -206,6 +234,7 @@ Handlers.add(
     "Credit-Notice",
     isCreditNoticeMessage,
     function(msg)
+        updateRandomness(msg["Block-Height"])
         print("credit notice received")
         local playerName = msg.Tags.Sender
         local quantity = tonumber(msg.Tags.Quantity)
@@ -233,26 +262,44 @@ Handlers.add(
                     print("Insufficient funds to cover potential payout.")
                     -- Return the bet if the house cannot cover the potential payout
                     local message = "Insufficient funds to cover potential payout"
-                    Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(quantity),
-                        ["X-Note"] = message })
+                    Send({
+                        Target = TestToken,
+                        Action = "Transfer",
+                        Recipient = playerName,
+                        Quantity = tostring(quantity),
+                        ["X-Note"] = message
+                    })
                     print("Sent message to " .. playerName .. ": " .. message)
-                    Send({ Target = playerName, Action = "BlackJackMessage", Data =
-                    "The house cannot cover your potential winnings at this time, your bet has been returned to you" })
+                    Send({
+                        Target = playerName,
+                        Action = "BlackJackMessage",
+                        Data =
+                        "The house cannot cover your potential winnings at this time, your bet has been returned to you"
+                    })
                     print("Sent message to " ..
-                    playerName ..
-                    ": The house cannot cover your potential winnings at this time, your bet has been returned to you")
+                        playerName ..
+                        ": The house cannot cover your potential winnings at this time, your bet has been returned to you")
                 end
             else
                 print("Bet amount out of range.")
                 -- Return the bet if it's not within the allowed range
                 local message = "Bet amount out of range"
-                Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(quantity),
-                    ["X-Note"] = message })
+                Send({
+                    Target = TestToken,
+                    Action = "Transfer",
+                    Recipient = playerName,
+                    Quantity = tostring(quantity),
+                    ["X-Note"] = message
+                })
                 print("Sent message to " .. playerName .. ": " .. message)
-                Send({ Target = playerName, Action = "BlackJackMessage", Data =
-                "Bets must be between 10 and 1000 CRED units, your bet has been returned to you" })
+                Send({
+                    Target = playerName,
+                    Action = "BlackJackMessage",
+                    Data =
+                    "Bets must be between 10 and 1000 CRED units, your bet has been returned to you"
+                })
                 print("Sent message to " ..
-                playerName .. ": Bets must be between 10 and 1000 CRED units, your bet has been returned to you")
+                    playerName .. ": Bets must be between 10 and 1000 CRED units, your bet has been returned to you")
             end
         else
             -- Active game exists, check if this is a double down, split, or insurance attempt
@@ -268,7 +315,7 @@ Handlers.add(
                             -- Player can double down
                             gameState.hands[gameState.activeHandIndex].doubledDown = true
                             gameState.hands[gameState.activeHandIndex].bet = gameState.hands[gameState.activeHandIndex]
-                            .bet + doubleDownBet
+                                .bet + doubleDownBet
                             lockedBalance = lockedBalance + doubleDownBet
                             -- Draw one additional card
                             local success, newCard = pcall(function() return table.remove(gameState.deck) end)
@@ -284,27 +331,48 @@ Handlers.add(
                             print("Insufficient funds to cover potential payout for double down.")
                             -- Return the bet if the house cannot cover the potential payout
                             local message = "Insufficient funds to cover potential payout for double down"
-                            Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(
-                            quantity), ["X-Note"] = message })
+                            Send({
+                                Target = TestToken,
+                                Action = "Transfer",
+                                Recipient = playerName,
+                                Quantity = tostring(
+                                    quantity),
+                                ["X-Note"] = message
+                            })
                             print("Sent message to " .. playerName .. ": " .. message)
-                            Send({ Target = playerName, Action = "BlackJackMessage", Data =
-                            "The house cannot cover your potential double down winnings at this time, your double down bet has been returned to you" })
+                            Send({
+                                Target = playerName,
+                                Action = "BlackJackMessage",
+                                Data =
+                                "The house cannot cover your potential double down winnings at this time, your double down bet has been returned to you"
+                            })
                             print("Sent message to " ..
-                            playerName ..
-                            ": The house cannot cover your potential double down winnings at this time, your double down bet has been returned to you")
+                                playerName ..
+                                ": The house cannot cover your potential double down winnings at this time, your double down bet has been returned to you")
                         end
                     else
                         local message = "You cannot double down at this stage."
-                        Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(
-                        quantity), ["X-Note"] = message })
+                        Send({
+                            Target = TestToken,
+                            Action = "Transfer",
+                            Recipient = playerName,
+                            Quantity = tostring(
+                                quantity),
+                            ["X-Note"] = message
+                        })
                         print("Sent refund message to " .. playerName .. " due to: " .. message)
                         Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
                         print("Sent message to " .. playerName .. ": " .. message)
                     end
                 else
                     local message = "Double down bet amount must match the original bet."
-                    Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(quantity),
-                        ["X-Note"] = message })
+                    Send({
+                        Target = TestToken,
+                        Action = "Transfer",
+                        Recipient = playerName,
+                        Quantity = tostring(quantity),
+                        ["X-Note"] = message
+                    })
                     print("Sent refund message to " .. playerName .. " due to: " .. message)
                     Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
                     print("Sent message to " .. playerName .. ": " .. message)
@@ -333,27 +401,48 @@ Handlers.add(
                             print("Insufficient funds to cover potential payout for split.")
                             -- Return the bet if the house cannot cover the potential payout
                             local message = "Insufficient funds to cover potential payout for split"
-                            Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(
-                            quantity), ["X-Note"] = message })
+                            Send({
+                                Target = TestToken,
+                                Action = "Transfer",
+                                Recipient = playerName,
+                                Quantity = tostring(
+                                    quantity),
+                                ["X-Note"] = message
+                            })
                             print("Sent message to " .. playerName .. ": " .. message)
-                            Send({ Target = playerName, Action = "BlackJackMessage", Data =
-                            "The house cannot cover your potential split winnings at this time, your split bet has been returned to you" })
+                            Send({
+                                Target = playerName,
+                                Action = "BlackJackMessage",
+                                Data =
+                                "The house cannot cover your potential split winnings at this time, your split bet has been returned to you"
+                            })
                             print("Sent message to " ..
-                            playerName ..
-                            ": The house cannot cover your potential split winnings at this time, your split bet has been returned to you")
+                                playerName ..
+                                ": The house cannot cover your potential split winnings at this time, your split bet has been returned to you")
                         end
                     else
                         local message = "You cannot split at this stage."
-                        Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(
-                        quantity), ["X-Note"] = message })
+                        Send({
+                            Target = TestToken,
+                            Action = "Transfer",
+                            Recipient = playerName,
+                            Quantity = tostring(
+                                quantity),
+                            ["X-Note"] = message
+                        })
                         print("Sent refund message to " .. playerName .. " due to: " .. message)
                         Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
                         print("Sent message to " .. playerName .. ": " .. message)
                     end
                 else
                     local message = "Split bet amount must match the original bet."
-                    Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(quantity),
-                        ["X-Note"] = message })
+                    Send({
+                        Target = TestToken,
+                        Action = "Transfer",
+                        Recipient = playerName,
+                        Quantity = tostring(quantity),
+                        ["X-Note"] = message
+                    })
                     print("Sent refund message to " .. playerName .. " due to: " .. message)
                     Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
                     print("Sent message to " .. playerName .. ": " .. message)
@@ -372,8 +461,14 @@ Handlers.add(
                         -- Resolve insurance bet if dealer has blackjack
                         if calculateHandValue(gameState.dealerCards) == 21 then
                             local message = "Dealer has blackjack! Insurance pays 2:1"
-                            Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(
-                            insuranceBet * 2), ["X-Note"] = "Insurance payout" })
+                            Send({
+                                Target = TestToken,
+                                Action = "Transfer",
+                                Recipient = playerName,
+                                Quantity = tostring(
+                                    insuranceBet * 2),
+                                ["X-Note"] = "Insurance payout"
+                            })
                             print("Sent message to " .. playerName .. ": " .. message)
                             Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
                             print("Sent message to " .. playerName .. ": " .. message)
@@ -390,16 +485,27 @@ Handlers.add(
                         end
                     else
                         local message = "Insurance not available due to insufficient funds"
-                        Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(
-                        quantity), ["X-Note"] = message })
+                        Send({
+                            Target = TestToken,
+                            Action = "Transfer",
+                            Recipient = playerName,
+                            Quantity = tostring(
+                                quantity),
+                            ["X-Note"] = message
+                        })
                         print("Sent refund message to " .. playerName .. " due to: " .. message)
                         Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
                         print("Sent message to " .. playerName .. ": " .. message)
                     end
                 else
                     local message = "Insurance not available"
-                    Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(quantity),
-                        ["X-Note"] = message })
+                    Send({
+                        Target = TestToken,
+                        Action = "Transfer",
+                        Recipient = playerName,
+                        Quantity = tostring(quantity),
+                        ["X-Note"] = message
+                    })
                     print("Sent refund message to " .. playerName .. " due to: " .. message)
                     Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
                     print("Sent message to " .. playerName .. ": " .. message)
@@ -407,8 +513,13 @@ Handlers.add(
             else
                 -- If not a double down, split, or insurance, check if it's a regular game update
                 local message = "You already have an active game. Finish it before starting a new one."
-                Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(quantity),
-                    ["X-Note"] = message })
+                Send({
+                    Target = TestToken,
+                    Action = "Transfer",
+                    Recipient = playerName,
+                    Quantity = tostring(quantity),
+                    ["X-Note"] = message
+                })
                 print("Sent refund message to " .. playerName .. " due to: " .. message)
                 Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
                 print("Sent message to " .. playerName .. ": " .. message)
@@ -421,6 +532,7 @@ Handlers.add(
     "showState",
     Handlers.utils.hasMatchingTag("Action", "showState"),
     function(msg)
+        updateRandomness(msg["Block-Height"])
         local caller = msg.Caller or msg.From
         print("Sending game state for " .. caller)
         local success, err = pcall(sendGameStateMessage, caller)
@@ -511,14 +623,24 @@ function resolveGame(playerName)
                 resultMessage = "Busted! Your hand value exceeded 21. You lose."
             elseif dealerHandValue > 21 or playerHandValue > dealerHandValue then
                 resultMessage = "Winner Winner Chicken Dinner!!!! (as long as you spend that CRED on a chicken dinner)"
-                Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(hand.bet * 2),
-                    ["X-Note"] = "You won!" })
+                Send({
+                    Target = TestToken,
+                    Action = "Transfer",
+                    Recipient = playerName,
+                    Quantity = tostring(hand.bet * 2),
+                    ["X-Note"] = "You won!"
+                })
             elseif dealerHandValue > playerHandValue then
                 resultMessage = "Dealer wins. Better luck next time."
             else -- dealerHandValue == playerHandValue
                 resultMessage = "It's a Push!"
-                Send({ Target = TestToken, Action = "Transfer", Recipient = playerName, Quantity = tostring(hand.bet),
-                    ["X-Note"] = "It's a push!" })
+                Send({
+                    Target = TestToken,
+                    Action = "Transfer",
+                    Recipient = playerName,
+                    Quantity = tostring(hand.bet),
+                    ["X-Note"] = "It's a push!"
+                })
             end
 
             -- Send the result to the player
@@ -548,11 +670,16 @@ Handlers.add(
     "Hit",
     Handlers.utils.hasMatchingTag("Action", "Hit"),
     function(msg)
+        updateRandomness(msg["Block-Height"])
         local success, err = pcall(function()
             if not gameStates[msg.From] then
                 -- No active game for this user
-                Send({ Target = msg.From, Action = "BlackJackMessage", Data =
-                "You have no active game. Start one by placing a bet." })
+                Send({
+                    Target = msg.From,
+                    Action = "BlackJackMessage",
+                    Data =
+                    "You have no active game. Start one by placing a bet."
+                })
                 print("Sent message to " .. msg.From .. ": You have no active game. Start one by placing a bet.")
             else
                 -- Active game exists, proceed with drawing a card
@@ -568,14 +695,18 @@ Handlers.add(
                     moveToNextHandOrDealer(msg.From)
                 elseif playerHandValue > 21 then
                     -- Player has busted
-                    Send({ Target = msg.From, Action = "BlackJackMessage", Data =
-                    "Busted! Your hand value exceeded 21. Game over for this hand." })
+                    Send({
+                        Target = msg.From,
+                        Action = "BlackJackMessage",
+                        Data =
+                        "Busted! Your hand value exceeded 21. Game over for this hand."
+                    })
                     gameState.hands[gameState.activeHandIndex].dealerCardShown = true
 
                     sendGameStateMessage(msg.From)
 
                     print("Sent message to " ..
-                    msg.From .. ": Busted! Your hand value exceeded 21. Game over for this hand.")
+                        msg.From .. ": Busted! Your hand value exceeded 21. Game over for this hand.")
                     moveToNextHandOrDealer(msg.From)
                 else
                     -- Player has not busted, send the updated game state
@@ -591,11 +722,16 @@ Handlers.add(
     "Stay",
     Handlers.utils.hasMatchingTag("Action", "Stay"),
     function(msg)
+        updateRandomness(msg["Block-Height"])
         local success, err = pcall(function()
             if not gameStates[msg.From] then
                 -- No active game
-                Send({ Target = msg.From, Action = "BlackJackMessage", Data =
-                "You have no active game. Start one by placing a bet." })
+                Send({
+                    Target = msg.From,
+                    Action = "BlackJackMessage",
+                    Data =
+                    "You have no active game. Start one by placing a bet."
+                })
                 print("Sent message to " .. msg.From .. ": You have no active game. Start one by placing a bet.")
             else
                 moveToNextHandOrDealer(msg.From)
