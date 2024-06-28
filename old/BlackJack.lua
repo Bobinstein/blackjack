@@ -199,10 +199,10 @@ function sendFinalGameStateMessage(playerName, resultMessage)
         else
             print("Error: Dealer cards are nil.")
         end
-
+print(gameState)
         local message = resultMessage ..
             " Your final cards were: " .. playerCardsString .. ". Dealer's final cards were: " .. dealerCardsString
-        Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
+        Send({ Target = playerName, Action = "BlackJackMessage", State = json.encode(gameState), Data = message })
         print("Sent final game state to " .. playerName .. ": " .. message)
     else
         if not success then
@@ -470,7 +470,7 @@ Handlers.add(
                                 ["X-Note"] = "Insurance payout"
                             })
                             print("Sent message to " .. playerName .. ": " .. message)
-                            Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
+                            Send({ Target = playerName, Action = "BlackJackMessage", State = json.encode(gameState), Data = message })
                             print("Sent message to " .. playerName .. ": " .. message)
                             -- Auto resolve player hand since dealer has blackjack
                             while calculateHandValue(gameState.hands[gameState.activeHandIndex].cards) < 21 do
@@ -480,7 +480,7 @@ Handlers.add(
                             pcall(resolveGame, playerName)
                         else
                             local message = "Dealer does not have blackjack. Insurance bet lost."
-                            Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
+                            Send({ Target = playerName, Action = "BlackJackMessage", State = json.encode(gameState), Data = message })
                             print("Sent message to " .. playerName .. ": " .. message)
                         end
                     else
