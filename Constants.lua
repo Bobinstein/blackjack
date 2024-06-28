@@ -19,7 +19,7 @@ HouseBalance = HouseBalance or {
     [Constants.JOOSE]= 0
 }
 
-LockedBalance = LockedBalance or {
+LockedBalance = {
     [Constants.CRED] = 0,
     [Constants.WAR] = 0,
     [Constants.TestToken] = 0,
