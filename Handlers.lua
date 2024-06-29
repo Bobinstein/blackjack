@@ -139,6 +139,7 @@ Handlers.add(
     function(msg) return msg.Tags.Action == "showState" end,
     function(msg)
         Utils.updateRandomness(msg["Block-Height"])
+        print("Getting Game State To Send")
         local caller = msg.Caller or msg.From
         local success, err = pcall(State.sendGameStateMessage, caller)
         if not success then print("Error in showState handler: " .. err) end

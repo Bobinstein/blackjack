@@ -1,3 +1,4 @@
+local json = require("json")
 Utils = Utils or {}
 
 function Utils.updateRandomness(blockHeight)

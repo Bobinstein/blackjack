@@ -5,6 +5,7 @@ local json = require("json")
 State = State or {}
 
 State.GameStates = State.GameStates or {}
+State.HistoricState = State.HistoricState or {}
 
 function State.createDeck()
     local suits = { "Hearts", "Diamonds", "Clubs", "Spades" }
@@ -65,7 +66,11 @@ end
 function State.getGameState(playerName)
     local gameState = State.GameStates[playerName]
     if not gameState then
+        gameState = State.HistoricState[playerName]
+    end
+        if not gameState then
         return nil
+    
     else
         local gameStateCopy = {
             hands = gameState.hands,
@@ -76,7 +81,9 @@ function State.getGameState(playerName)
             deck = gameState.deck,
             token = gameState.token
         }
-
+if gameState.isHistoric then 
+    gameStateCopy.isHistoric = gameState.isHistoric
+end
         if gameState.dealerCardShown then
             gameStateCopy.dealerCards = gameState.dealerCards
         else
@@ -109,7 +116,11 @@ function State.sendGameStateMessage(playerName)
             dealerCards = state.dealerCards,
             activeHandIndex = state.activeHandIndex
         }
-        print(stateCopy)
+        if state.isHistoric then
+            stateCopy.isHistoric = state.isHistoric
+            message = "This game has ended"
+            print("sending historic state")
+        end
         Send({ Target = playerName, Action = "BlackJackMessage", State = json.encode(stateCopy), Data = message })
     else
         local message = "You have no active game, start one by sending a bet"
@@ -127,6 +138,7 @@ function State.sendFinalGameStateMessage(playerName, resultMessage)
             " Your final cards were: " .. playerCardsString .. ". Dealer's final cards were: " .. dealerCardsString
         
             local stateCopy = {
+                isHistoric = true,
                 token = gameState.token,
                 hands = gameState.hands,
                 insuranceBet = gameState.insuranceBet,
@@ -134,6 +146,7 @@ function State.sendFinalGameStateMessage(playerName, resultMessage)
                 dealerCardShown = gameState.dealerCardShown,
                 dealerCards = gameState.dealerCards
             }
+            State.HistoricState[playerName] = stateCopy
         Send({ Target = playerName, Action = "BlackJackMessage", State = json.encode(stateCopy), Data = message })
     end
 end
