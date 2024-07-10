@@ -71,7 +71,7 @@ function Utils.hasSoft17(hand)
 end
 
 function Utils.checkTokenValidity(tokenProcess)
-    print("Checking token validity")
+    -- print("Checking token validity")
     for _, token in ipairs(Constants.Tokens) do
         if tokenProcess == token.process then
             return true, token
@@ -81,6 +81,7 @@ function Utils.checkTokenValidity(tokenProcess)
 end
 
 function Utils.returnBet(token, playerName, quantity, message)
+    LockedBalance[token] = LockedBalance[token] - quantity
     Send({
         Target = token,
         Action = "Transfer",
@@ -97,14 +98,14 @@ end
 
 function Utils.handleNewGame(playerName, quantity, tokenDetails)
     if quantity >= tokenDetails.minBet and quantity <= tokenDetails.maxBet then
-        print("first if passed")
-        print(quantity)
+        -- print("first if passed")
+        -- print(quantity)
         local potentialPayout = tonumber(quantity) * 2
         if not LockedBalance[tokenDetails.process] then
             LockedBalance[tokenDetails.process] = 0
         end
         if HouseBalance[tokenDetails.process] - LockedBalance[tokenDetails.process] >= potentialPayout then
-            print("Second if passed")
+            -- print("Second if passed")
             local success, err = pcall(State.addPlayerGameState, playerName, quantity, tokenDetails.process)
             if not success then
                 print("Error in addPlayerGameState: " .. err)
@@ -199,6 +200,7 @@ function Utils.handleInsuranceBet(playerName, quantity, gameState)
                 pcall(State.resolveGame, playerName)
             else
                 local message = "Dealer does not have blackjack. Insurance bet lost."
+                LockedBalance[token] = LockedBalance[token] - insuranceBet -- decrement if lost
                 Send({ Target = playerName, Action = "BlackJackMessage", State = json.encode(gameState), Data = message })
             end
         else

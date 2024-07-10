@@ -1,5 +1,4 @@
--- State.lua
-require("Utils")
+-- require("Utils")
 local json = require("json")
 
 State = State or {}
@@ -58,7 +57,14 @@ function State.endGame(playerName)
     if gameState then
         for _, hand in ipairs(gameState.hands) do
             LockedBalance[gameState.token] = LockedBalance[gameState.token] - (hand.bet * 2)
+            if gameState.insuranceBet > 0 then
+                LockedBalance[gameState.token] = LockedBalance[gameState.token] - gameState.insuranceBet
+            end
+            if LockedBalance[gameState.token] < 0 then
+                LockedBalance[gameState.token] = 0
+            end
         end
+        Send({Target = gameState.token, Action = "Balance"})
         State.GameStates[playerName] = nil
     end
 end
@@ -68,9 +74,8 @@ function State.getGameState(playerName)
     if not gameState then
         gameState = State.HistoricState[playerName]
     end
-        if not gameState then
+    if not gameState then
         return nil
-    
     else
         local gameStateCopy = {
             hands = gameState.hands,
@@ -81,9 +86,9 @@ function State.getGameState(playerName)
             deck = gameState.deck,
             token = gameState.token
         }
-if gameState.isHistoric then 
-    gameStateCopy.isHistoric = gameState.isHistoric
-end
+        if gameState.isHistoric then 
+            gameStateCopy.isHistoric = gameState.isHistoric
+        end
         if gameState.dealerCardShown then
             gameStateCopy.dealerCards = gameState.dealerCards
         else
@@ -137,16 +142,16 @@ function State.sendFinalGameStateMessage(playerName, resultMessage)
         local message = resultMessage ..
             " Your final cards were: " .. playerCardsString .. ". Dealer's final cards were: " .. dealerCardsString
         
-            local stateCopy = {
-                isHistoric = true,
-                token = gameState.token,
-                hands = gameState.hands,
-                insuranceBet = gameState.insuranceBet,
-                originalBet = gameState.originalBet,
-                dealerCardShown = gameState.dealerCardShown,
-                dealerCards = gameState.dealerCards
-            }
-            State.HistoricState[playerName] = stateCopy
+        local stateCopy = {
+            isHistoric = true,
+            token = gameState.token,
+            hands = gameState.hands,
+            insuranceBet = gameState.insuranceBet,
+            originalBet = gameState.originalBet,
+            dealerCardShown = gameState.dealerCardShown,
+            dealerCards = gameState.dealerCards
+        }
+        State.HistoricState[playerName] = stateCopy
         Send({ Target = playerName, Action = "BlackJackMessage", State = json.encode(stateCopy), Data = message })
     end
 end
@@ -156,7 +161,19 @@ function State.moveToNextHandOrDealer(playerName)
         local gameState = State.GameStates[playerName]
         gameState.activeHandIndex = gameState.activeHandIndex + 1
         if gameState.activeHandIndex > #gameState.hands then
-            pcall(State.dealerDraw, playerName)
+            local allBusted = true
+            for _, hand in ipairs(gameState.hands) do
+                if Utils.calculateHandValue(hand.cards) <= 21 then
+                    allBusted = false
+                    break
+                end
+            end
+            if allBusted then
+                gameState.dealerCardShown = true
+                State.resolveGame(playerName)
+            else
+                pcall(State.dealerDraw, playerName)
+            end
         else
             pcall(State.sendGameStateMessage, playerName)
         end

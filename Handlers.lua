@@ -9,7 +9,7 @@ Handlers = Handlers or {}
 
 -- Updated Balance handler to check against all tokens in Constants
 Handlers.add(
-    "Balance",
+    "Local-Balances",
     function(msg)
         for _, token in ipairs(Constants.Tokens) do
             if msg.From == token.process and msg.Tags.Balance then
@@ -34,7 +34,7 @@ Handlers.add(
         local playerName = msg.Tags.Sender
         local quantity = tonumber(msg.Tags.Quantity)
         local xNote = msg.Tags["X-Note"]
-        print("credit notice received")
+        -- print("credit notice received")
         local success, tokenValid, tokenDetails = pcall(Utils.checkTokenValidity, msg.From)
         if not success then
             print("Error in checkTokenValidity: " .. tostring(tokenValid)) -- tokenValid contains the error message in this case
@@ -52,7 +52,7 @@ Handlers.add(
         end
 
         if tokenDetails and not State.GameStates[playerName] then
-            print(tokenDetails)
+            -- print(tokenDetails)
             local newGameSuccess, err = pcall(Utils.handleNewGame, playerName, quantity, tokenDetails)
             if not newGameSuccess then
                 print("Error in handleNewGame: " .. err)
@@ -139,7 +139,7 @@ Handlers.add(
     function(msg) return msg.Tags.Action == "showState" end,
     function(msg)
         Utils.updateRandomness(msg["Block-Height"])
-        print("Getting Game State To Send")
+        -- print("Getting Game State To Send")
         local caller = msg.Caller or msg.From
         local success, err = pcall(State.sendGameStateMessage, caller)
         if not success then print("Error in showState handler: " .. err) end

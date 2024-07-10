@@ -9,19 +9,15 @@ Constants.OldRandomSeed = Constants.OldRandomSeed or 69420
 -- Initialize Tokens and HouseBalance
 Constants.Tokens = {
     { name = "JOOSE", process = Constants.JOOSE, minBet = 1000000000000, maxBet = 100000000000000},
-    { name = "TestToken", process = Constants.TestToken, minBet = 100, maxBet = 1000 }
+    -- { name = "TestToken", process = Constants.TestToken, minBet = 100, maxBet = 1000 }
 }
 
 HouseBalance = HouseBalance or {
-    [Constants.CRED] = 0,
-    [Constants.WAR] = 0,
     [Constants.TestToken] = 0,
     [Constants.JOOSE]= 0
 }
 
-LockedBalance = {
-    [Constants.CRED] = 0,
-    [Constants.WAR] = 0,
+LockedBalance = LockedBalance or {
     [Constants.TestToken] = 0,
     [Constants.JOOSE] = 0
 }
