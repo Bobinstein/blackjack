@@ -213,7 +213,7 @@ function State.resolveGame(playerName)
             if playerHandValue > 21 then
                 resultMessage = "Busted! Your hand value exceeded 21. You lose."
             elseif dealerHandValue > 21 or playerHandValue > dealerHandValue then
-                resultMessage = "Winner Winner Chicken Dinner!!!! (as long as you spend that CRED on a chicken dinner)"
+                resultMessage = "Winner Winner Chicken Dinner!!!! (as long as you spend your winnings on a chicken dinner)"
                 Send({
                     Target = gameState.token,
                     Action = "Transfer",
