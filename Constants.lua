@@ -10,6 +10,7 @@ Constants.TRUNK = "OT9qTE2467gcozb2g8R6D6N3nQS94ENcaAIJfUzHCww"
 Constants.LLAMA = 'pazXumQI-HPH7iFGfTC-4_7biSnqz_U67oFAGry5zUY'
 
 Constants.ExclusiveLlama = 'zsU5NxCo8WbpyLCqXrckjmXfP0PWpAGzo1E-W_iegbI'
+Constants.LlamaLand = "9a_YP6M7iN7b6QUoSvpoV3oe3CqxosyuJnraCucy5ss"
 
 -- Initialize Tokens and HouseBalance
 Constants.Tokens = {
