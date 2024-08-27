@@ -7,6 +7,7 @@ local json = require("json")
 Handlers = Handlers or {}
 
 
+
 -- Updated Balance handler to check against all tokens in Constants
 Handlers.add(
     "Local-Balances",
@@ -45,6 +46,10 @@ Handlers.add(
             Utils.returnBet(msg.From, playerName, quantity, "Invalid token received.")
             return
         end
+        local llama
+        if xNote == "LlamaMessage" then
+            llama = Constants.ExclusiveLlama
+        end
 
         if xNote == "Bankroll" then
             Send({ Target = msg.From, Action = "Balance" })
@@ -53,7 +58,7 @@ Handlers.add(
 
         if tokenDetails and not State.GameStates[playerName] then
             -- print(tokenDetails)
-            local newGameSuccess, err = pcall(Utils.handleNewGame, playerName, quantity, tokenDetails)
+            local newGameSuccess, err = pcall(Utils.handleNewGame, playerName, quantity, tokenDetails, llama)
             if not newGameSuccess then
                 print("Error in handleNewGame: " .. err)
             end
@@ -86,6 +91,11 @@ Handlers.add(
     function(msg)
         Utils.updateRandomness(msg["Block-Height"])
         local playerName = msg.From
+        local llama 
+        if msg['X-Note'] == "LlamaMessage" then
+            llama = Constants.ExclusiveLlama
+        end
+        print(llama)
         if not State.GameStates[playerName] then
             Send({
                 Target = playerName,
@@ -100,7 +110,7 @@ Handlers.add(
 
             if playerHandValue == 21 then
                 Send({ Target = playerName, Action = "BlackJackMessage", Data = "21! Dealer's draw" })
-                State.moveToNextHandOrDealer(playerName)
+                State.moveToNextHandOrDealer(playerName, llama)
             elseif playerHandValue > 21 then
                 Send({
                     Target = playerName,
@@ -108,9 +118,9 @@ Handlers.add(
                     Data = "Busted! Your hand value exceeded 21. Game over for this hand."
                 })
                 gameState.hands[gameState.activeHandIndex].dealerCardShown = true
-                State.moveToNextHandOrDealer(playerName)
+                State.moveToNextHandOrDealer(playerName, llama)
             else
-                State.sendGameStateMessage(playerName)
+                State.sendGameStateMessage(playerName, llama)
             end
         end
     end
@@ -122,14 +132,17 @@ Handlers.add(
     function(msg)
         Utils.updateRandomness(msg["Block-Height"])
         local playerName = msg.From
+        if msg['X-Note'] == "LlamaMessage" then
+            llama = Constants.ExclusiveLlama
+        end
         if not State.GameStates[playerName] then
             Send({
-                Target = playerName,
+                Target = llama or playerName,
                 Action = "BlackJackMessage",
                 Data = "You have no active game. Start one by placing a bet."
             })
         else
-            State.moveToNextHandOrDealer(playerName)
+            State.moveToNextHandOrDealer(playerName, llama)
         end
     end
 )
@@ -141,7 +154,7 @@ Handlers.add(
         Utils.updateRandomness(msg["Block-Height"])
         -- print("Getting Game State To Send")
         local caller = msg.Caller or msg.From
-        local success, err = pcall(State.sendGameStateMessage, caller)
+        local success, err = pcall(State.sendGameStateMessage, caller, msg.From)
         if not success then print("Error in showState handler: " .. err) end
     end
 )

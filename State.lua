@@ -99,7 +99,10 @@ function State.getGameState(playerName)
     end
 end
 
-function State.sendGameStateMessage(playerName)
+function State.sendGameStateMessage(playerName, externalCaller)
+    if externalCaller then
+        print(externalCaller)
+    end
     local success, state = pcall(State.getGameState, playerName)
     if success and state then
         local allPlayerHandsString = ""
@@ -124,16 +127,16 @@ function State.sendGameStateMessage(playerName)
         if state.isHistoric then
             stateCopy.isHistoric = state.isHistoric
             message = "This game has ended"
-            print("sending historic state")
+            print("sending historic state for " .. playerName)
         end
-        Send({ Target = playerName, Action = "BlackJackMessage", State = json.encode(stateCopy), Data = message })
+        Send({ Target = externalCaller or playerName, Action = "BlackJackMessage", State = json.encode(stateCopy), Player = playerName, Data = message })
     else
         local message = "You have no active game, start one by sending a bet"
-        Send({ Target = playerName, Action = "BlackJackMessage", Data = message })
+        Send({ Target = externalCaller or playerName, Action = "BlackJackMessage", Player = playerName, Data = message })
     end
 end
 
-function State.sendFinalGameStateMessage(playerName, resultMessage)
+function State.sendFinalGameStateMessage(playerName, resultMessage, llama)
     local success, gameState = pcall(State.getGameState, playerName)
     if success and gameState then
         local hand = gameState.hands[gameState.activeHandIndex - 1]
@@ -152,11 +155,13 @@ function State.sendFinalGameStateMessage(playerName, resultMessage)
             dealerCards = gameState.dealerCards
         }
         State.HistoricState[playerName] = stateCopy
-        Send({ Target = playerName, Action = "BlackJackMessage", State = json.encode(stateCopy), Data = message })
+        local target = llama or playerName
+        print("final message goes to " .. target)
+        Send({ Target = target, Action = "BlackJackMessage", Player = playerName, State = json.encode(stateCopy), Data = message })
     end
 end
 
-function State.moveToNextHandOrDealer(playerName)
+function State.moveToNextHandOrDealer(playerName, llama)
     local success, err = pcall(function()
         local gameState = State.GameStates[playerName]
         gameState.activeHandIndex = gameState.activeHandIndex + 1
@@ -170,18 +175,18 @@ function State.moveToNextHandOrDealer(playerName)
             end
             if allBusted then
                 gameState.dealerCardShown = true
-                State.resolveGame(playerName)
+                State.resolveGame(playerName, llama)
             else
-                pcall(State.dealerDraw, playerName)
+                pcall(State.dealerDraw, playerName, llama)
             end
         else
-            pcall(State.sendGameStateMessage, playerName)
+            pcall(State.sendGameStateMessage, playerName, llama)
         end
     end)
     if not success then print("Error in moveToNextHandOrDealer: " .. err) end
 end
 
-function State.dealerDraw(playerName)
+function State.dealerDraw(playerName, llama)
     local success, err = pcall(function()
         local gameState = State.GameStates[playerName]
         if not gameState then
@@ -197,12 +202,12 @@ function State.dealerDraw(playerName)
             dealerHandValue = Utils.calculateHandValue(gameState.dealerCards)
         end
 
-        State.resolveGame(playerName)
+        State.resolveGame(playerName, llama)
     end)
     if not success then print("Error in dealerDraw: " .. err) end
 end
 
-function State.resolveGame(playerName)
+function State.resolveGame(playerName, llama)
     local success, err = pcall(function()
         local gameState = State.GameStates[playerName]
         for _, hand in ipairs(gameState.hands) do
@@ -234,7 +239,7 @@ function State.resolveGame(playerName)
                 })
             end
 
-            local success, err = pcall(State.sendFinalGameStateMessage, playerName, resultMessage)
+            local success, err = pcall(State.sendFinalGameStateMessage, playerName, resultMessage, llama)
             if not success then print("Error in sendFinalGameStateMessage: " .. err) end
         end
 

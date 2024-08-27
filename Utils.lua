@@ -96,7 +96,7 @@ function Utils.returnBet(token, playerName, quantity, message)
     })
 end
 
-function Utils.handleNewGame(playerName, quantity, tokenDetails)
+function Utils.handleNewGame(playerName, quantity, tokenDetails, llama)
     if quantity >= tokenDetails.minBet and quantity <= tokenDetails.maxBet then
         -- print("first if passed")
         -- print(quantity)
@@ -110,7 +110,7 @@ function Utils.handleNewGame(playerName, quantity, tokenDetails)
             if not success then
                 print("Error in addPlayerGameState: " .. err)
             else
-                pcall(State.sendGameStateMessage, playerName)
+                pcall(State.sendGameStateMessage, playerName, llama)
             end
         else
             Utils.returnBet(tokenDetails.process, playerName, quantity, "Insufficient house funds to cover potential payout")
