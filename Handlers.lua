@@ -48,7 +48,7 @@ Handlers.add(
         end
         local llama
         if xNote == "LlamaMessage" then
-            llama = Constants.LlamaLand
+            llama = Constants.ExclusiveLlama
         end
 
         if xNote == "Bankroll" then
